@@ -1,0 +1,56 @@
+cpu_fan_base: 35
+sys_fan_base: 75
+
+smart_disks: [ /dev/sdb, /dev/sdc, /dev/sdd, /dev/sde ]
+#  - /dev/sdb
+#  - /dev/sdc
+#  - /dev/sdd
+#  - /dev/sde
+
+cpu_temp_triggers:
+  - name: medium
+    threshold: 40
+    hysteresis: 38
+    cpu_fan_speed: 50
+    sys_fan_speed: 100
+  - name: high
+    threshold: 45
+    hysteresis: 43
+    cpu_fan_speed: 75
+    sys_fan_speed: 100
+  - name: maximum
+    threshold: 48
+    hysteresis: 46
+    cpu_fan_speed: 100
+    sys_fan_speed: 100
+
+pch_temp_triggers:
+  - name: medium
+    threshold: 65
+    hysteresis: 63
+    cpu_fan_speed: 50
+    sys_fan_speed: 100
+  - name: high
+    threshold: 70
+    hysteresis: 68
+    cpu_fan_speed: 75
+    sys_fan_speed: 100
+  - name: maximum
+    threshold: 73
+    hysteresis: 71
+    cpu_fan_speed: 100
+    sys_fan_speed: 100
+
+disk_temp_triggers:
+  - name: high
+    threshold: 36
+    hysteresis: 34
+    cpu_fan_speed: 0
+    sys_fan_speed: 100
+
+ipmi_fans:
+  - name: CPU fan
+    record_id: 607
+  - name: System fan
+    record_id: 741
+
