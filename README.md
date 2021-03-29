@@ -126,7 +126,7 @@ $ sudo systemctl enable smfd.service --now
 
 #### 9. Check the log
 
-Double check that the daemon is managing your fan speeds appropriately by check its logs.
+Double check that the daemon is managing your fan speeds appropriately by checking its logs.
 
 ```
 $ sudo journalctl -f -u smfd.service
