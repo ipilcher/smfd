@@ -13,8 +13,8 @@ balance noise and temperatures.  In reality, I have found that the BMC in my
 [SYS-5028D-TN4T](https://www.supermicro.com/en/products/system/midtower/5028/SYS-5028D-TN4T.cfm)
 does not adequately cool the hard drives in the system.
 
-The BMC provides 4 fan management modes &mdash; standard, full, optimal, heavy I/O.  Standard and
-optimal modes adjust the CPU fan speed in respnse to changes in the CPU (and possibly PCH)
+The BMC provides 4 fan management modes &mdash; standard, full, optimal, and heavy I/O.  Standard
+and optimal modes adjust the CPU fan speed in respnse to changes in the CPU (and possibly PCH)
 temperature, but they do not appear to monitor the hard disk temperatures, and the "system" fan
 runs at a very low speed.  Full speed runs both the CPU and system fans at 100%; this does keep
 the disk drives cool, but it runs the CPU fan at more than 6,000 RPM, which creates an annoying
