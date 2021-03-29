@@ -1,0 +1,52 @@
+policy_module(smfd, 0)
+
+require {
+	type kernel_t;
+	type devlog_t;
+	type syslogd_var_run_t;
+	type sysfs_t;
+	type ipmi_device_t;
+	type fixed_disk_device_t;
+	type udev_var_run_t;
+	type user_devpts_t;
+};
+
+type smfd_t;
+type smfd_exec_t;
+type smfd_etc_t;
+type smfd_var_lib_t;
+
+init_daemon_domain(smfd_t, smfd_exec_t)
+files_type(smfd_etc_t)
+files_type(smfd_var_lib_t)
+
+# syslog
+allow smfd_t self:unix_dgram_socket { create connect write };
+allow smfd_t kernel_t:unix_dgram_socket { sendto };
+allow smfd_t devlog_t:lnk_file { read };
+allow smfd_t devlog_t:sock_file { write };
+allow smfd_t syslogd_var_run_t:dir { search };
+
+# log to stderr (when run with runcon)
+allow smfd_t user_devpts_t:chr_file { read write append ioctl };
+
+# SDR cache
+allow smfd_t smfd_var_lib_t:dir { search };
+allow smfd_t smfd_var_lib_t:file { read open getattr map };
+
+# configuration file
+allow smfd_t smfd_etc_t:dir { search };
+allow smfd_t smfd_etc_t:file { read open getattr };
+
+# coretemp & PCH temperatures
+allow smfd_t sysfs_t:file { read open getattr };
+
+# in-band IPMI
+allow smfd_t ipmi_device_t:chr_file { read write open ioctl };
+
+# disk temperatures (via S.M.A.R.T.)
+allow smfd_t fixed_disk_device_t:blk_file { read open getattr ioctl };
+allow smfd_t sysfs_t:lnk_file { getattr read };
+allow smfd_t udev_var_run_t:dir { search };
+allow smfd_t udev_var_run_t:file { read open getattr };
+allow smfd_t self:capability { sys_rawio };
