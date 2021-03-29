@@ -64,28 +64,41 @@ $ git clone https://github.com/ipilcher/smfd.git
 $ cd smfd
 ```
 
-#### 3. Build the daemon
+#### 3. Build and load the SELinux policy module
+
+This requires that the `selinux-policy-devel` package be installed.
+
+```
+$ make -f /usr/share/selinux/devel/Makefile
+⋮
+
+$ sudo semodule -i smfd.pp
+```
+
+#### 4. Build the daemon
 
 ```
 $ gcc -O3 -Wall -Wextra -o smfd smfd.c -lfreeipmi -latasmart -lyaml
 ```
 
-#### 4. Install the daemon
+#### 5. Install the daemon
 
 ```
 $ sudo cp smfd /usr/local/bin/
+$ sudo chcon -t smfd_exec_t /usr/local/bin/smfd
 ```
 
-#### 5. Customize the configuration file
+#### 6. Customize the configuration file
 
 ```
 $ sudo mkdir /etc/smfd
 $ sudo cp config.yaml /etc/smfd/
+$ sudo chcon -R -t smfd_etc_t /etc/smfd
 $ sudo vi /etc/smfd/config.yaml
 ⋮
 ```
 
-#### 6. Create the SDR cache
+#### 7. Create the SDR cache
 
 ```
 $ sudo ipmi-sensors
@@ -94,12 +107,13 @@ Caching SDR repository information: /root/.freeipmi/sdr-cache/sdr-cache-⋯.loca
 
 $ sudo mkdir /var/lib/smfd
 $ sudo cp /root/.freeipmi/sdr-cache/sdr-cache-⋯.localhost /var/lib/smfd/sdr-cache
+$ sudo chcon -R -t smfd_var_lib_t /var/lib/smfd
 ```
 
 > **NOTE:** The name of the SDR cache file created by `ipmi-sensors` varies, based on the system
 > hostname.
 
-#### 7. Create a unit file
+#### 8. Create a unit file
 
 ```
 $ cat << EOF | sudo tee /etc/systemd/system/smfd.service
@@ -118,13 +132,13 @@ EOF
 $ sudo systemctl daemon-reload
 ```
 
-#### 8. Enable and start the service
+#### 9. Enable and start the service
 
 ```
 $ sudo systemctl enable smfd.service --now
 ```
 
-#### 9. Check the log
+#### 10. Check the log
 
 Double check that the daemon is managing your fan speeds appropriately by checking its logs.
 
