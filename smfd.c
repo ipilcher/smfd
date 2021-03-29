@@ -883,7 +883,7 @@ static void smfd_ipmi_init(void)
 	SMFD_NOTICE("Setting system fan to 100%%\n");
 	smfd_set_fan_percent(SMFD_FAN_ZONE_SYS, 100);
 
-	SMFD_DEBUG("smfd_ipmi_init finished");
+	SMFD_DEBUG("smfd_ipmi_init finished\n");
 }
 
 /* Close/destroy FreeIPMI contexts (smfd_ipmi and smfd_read) & free smfd_ipmi_fans */
@@ -1222,6 +1222,14 @@ static char *smfd_parse_string(const yaml_node_t *const node, const char *const 
 	return value;
 }
 
+static void smfd_parse_sdr_cache(const yaml_node_t *const node,
+				 yaml_document_t *const doc __attribute__((unused)),
+				 const char *const restrict name,
+				 void *const restrict data __attribute__((unused)))
+{
+	smfd_sdr_cache = smfd_parse_string(node, name);
+}
+
 /* Parse a fan speed (percentage) from a scalar node */
 static void smfd_parse_fan_speed(const yaml_node_t *const node,
 				 yaml_document_t *const doc __attribute__((unused)),
@@ -1512,6 +1520,7 @@ static void smfd_load_config(void)
 		{ "disk_temp_triggers",	smfd_parse_triggers,		&smfd_cfg_disk_temp	},
 		{ "ipmi_fans",		smfd_parse_ipmi_fans,		NULL			},
 		{ "smart_disks",	smfd_parse_smart_disks,		NULL			},
+		{ "sdr_cache_file",	smfd_parse_sdr_cache,		NULL			},
 		{ NULL }
 	};
 

@@ -5,6 +5,11 @@
 log_interval: 3600
 
 #
+# IPMI SDR cache file (optional)
+#
+#sdr_cache_file: /var/lib/smfd/sdr-cache
+
+#
 # CPU & system fan duty cycles (percentages) when no triggers are active
 #
 cpu_fan_base: 35
