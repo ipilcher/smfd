@@ -1,53 +1,84 @@
+#
+# Frequency (in seconds) at which smfd logs system state & temperature information
+# Set to 0 to disable periodic logging
+#
+log_interval: 3600
+
+#
+# CPU & system fan duty cycles (percentages) when no triggers are active
+#
 cpu_fan_base: 35
 sys_fan_base: 75
 
+#
+# Disks whose temperatures should be monitored
+#
 smart_disks: [ /dev/sdb, /dev/sdc, /dev/sdd, /dev/sde ]
 #  - /dev/sdb
 #  - /dev/sdc
 #  - /dev/sdd
 #  - /dev/sde
 
+#
+# CPU temperature (coretemp) triggers
+#
 cpu_temp_triggers:
-  - name: medium
+
+  - name: medium                # name for logging (required)
     threshold: 40
     hysteresis: 38
-    cpu_fan_speed: 50
-    sys_fan_speed: 100
+    cpu_fan_speed: 50           # minimum CPU fan duty cycle when triggered
+    sys_fan_speed: 100          # minimum system fan duty cycle when triggered
+
   - name: high
     threshold: 45
     hysteresis: 43
     cpu_fan_speed: 75
     sys_fan_speed: 100
+
   - name: maximum
     threshold: 48
     hysteresis: 46
     cpu_fan_speed: 100
     sys_fan_speed: 100
 
+#
+# PCH temperature triggers
+#
 pch_temp_triggers:
+
   - name: medium
     threshold: 65
     hysteresis: 63
     cpu_fan_speed: 50
     sys_fan_speed: 100
+
   - name: high
     threshold: 70
     hysteresis: 68
     cpu_fan_speed: 75
     sys_fan_speed: 100
+
   - name: maximum
     threshold: 73
     hysteresis: 71
     cpu_fan_speed: 100
     sys_fan_speed: 100
 
+#
+# Disk temperature triggers
+#
 disk_temp_triggers:
+
+  # This trigger doesn't affect the CPU fan speed
   - name: high
     threshold: 36
     hysteresis: 34
-    cpu_fan_speed: 0
     sys_fan_speed: 100
 
+#
+# IPMI fan sensors; used only for periodic logging
+#
 ipmi_fans:
   - name: CPU fan
     record_id: 607
