@@ -88,17 +88,7 @@ $ sudo cp smfd /usr/local/bin/
 $ sudo chcon -t smfd_exec_t /usr/local/bin/smfd
 ```
 
-#### 6. Customize the configuration file
-
-```
-$ sudo mkdir /etc/smfd
-$ sudo cp config.yaml /etc/smfd/
-$ sudo chcon -R -t smfd_etc_t /etc/smfd
-$ sudo vi /etc/smfd/config.yaml
-⋮
-```
-
-#### 7. Create the SDR cache
+#### 6. Create the SDR cache
 
 ```
 $ sudo ipmi-sensors
@@ -112,6 +102,26 @@ $ sudo chcon -R -t smfd_var_lib_t /var/lib/smfd
 
 > **NOTE:** The name of the SDR cache file created by `ipmi-sensors` varies, based on the system
 > hostname.
+
+The output of `ipmi-sensors` includes the IPMI SDR record IDs of the fan sensors, which are needed
+in the next step.  For example:
+
+```
+540  | FAN1            | Fan               | N/A        | RPM   | N/A
+607  | FAN2            | Fan               | 4600.00    | RPM   | 'OK'
+674  | FAN3            | Fan               | N/A        | RPM   | N/A
+741  | FAN4            | Fan               | 2000.00    | RPM   | 'OK'
+```
+
+#### 7. Customize the configuration file
+
+```
+$ sudo mkdir /etc/smfd
+$ sudo cp config.yaml /etc/smfd/
+$ sudo chcon -R -t smfd_etc_t /etc/smfd
+$ sudo vi /etc/smfd/config.yaml
+⋮
+```
 
 #### 8. Create a user
 

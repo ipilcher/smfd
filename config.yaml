@@ -85,8 +85,10 @@ disk_temp_triggers:
 # IPMI fan sensors; used only for periodic logging
 #
 ipmi_fans:
-  - name: CPU fan
-    record_id: 607
+
+  - name: CPU fan       # Name that will be used in smfd logs
+    record_id: 607      # SDR ID (from ipmi-sensors)
+
   - name: System fan
     record_id: 741
 
