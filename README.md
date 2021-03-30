@@ -113,7 +113,26 @@ $ sudo chcon -R -t smfd_var_lib_t /var/lib/smfd
 > **NOTE:** The name of the SDR cache file created by `ipmi-sensors` varies, based on the system
 > hostname.
 
-#### 8. Create a unit file
+#### 8. Create a user
+
+```
+$ sudo useradd -c 'Supermicro fan daemon' -d /var/lib/smfd -r -s /usr/sbin/nologin -G disk smfd
+```
+
+#### 9. Create a `udev` rule for the in-band IPMI device
+
+```
+$ echo 'SUBSYSTEM=="ipmi", KERNEL=="ipmi0", GROUP="smfd"' | sudo tee /etc/udev/rules.d/99-ipmi-smfd.rules
+```
+
+#### 10. Reboot the system and check the permissions of `/dev/ipmi0`
+
+```
+$ ls -l /dev/ipmi0
+crw-rw----. 1 root smfd 239, 0 Mar 30 13:13 /dev/ipmi0
+```
+
+#### 11. Create a unit file
 
 ```
 $ cat << EOF | sudo tee /etc/systemd/system/smfd.service
@@ -122,6 +141,8 @@ Description=Supermicro X10 fan daemon
 
 [Service]
 Type=simple
+User=smfd
+AmbientCapabilities=CAP_SYS_RAWIO
 ExecStart=/usr/local/bin/smfd
 
 [Install]
@@ -132,13 +153,13 @@ EOF
 $ sudo systemctl daemon-reload
 ```
 
-#### 9. Enable and start the service
+#### 12. Enable and start the service
 
 ```
 $ sudo systemctl enable smfd.service --now
 ```
 
-#### 10. Check the log
+#### 13. Check the log
 
 Double check that the daemon is managing your fan speeds appropriately by checking its logs.
 
