@@ -138,6 +138,9 @@ static _Bool smfd_use_syslog = 0;
 /* Log debug messages? */
 static _Bool smfd_debug = 0;
 
+/* Dump configuration & exit? */
+static _Bool smfd_config_test = 0;
+
 /* Configuration file */
 static const char *smfd_config_file = "/etc/smfd/config.yaml";
 
@@ -405,6 +408,7 @@ static void smfd_parse_args(const int argc, char **const argv)
 			"  -h, --help        show this message and exit\n"
 			"  -d                print/log debugging messages\n"
 			"  -s                log to syslog (when running in a terminal)\n"
+			"  -p                print/log configuration & exit (implies -d)\n"
 			"  -c CONFIG_FILE    configuration file [/etc/smfd/config.yaml]\n";
 
 	int i;
@@ -427,6 +431,12 @@ static void smfd_parse_args(const int argc, char **const argv)
 
 		if (strcmp(argv[i], "-s") == 0) {
 			smfd_use_syslog = 1;
+			continue;
+		}
+
+		if (strcmp(argv[i], "-p") == 0) {
+			smfd_config_test = 1;
+			smfd_debug = 1;
 			continue;
 		}
 
@@ -1155,6 +1165,9 @@ static void smfd_dump_config(void)
 		SMFD_DEBUG("    [%u]:\n", i);
 		SMFD_DEBUG("      .name: %s\n", smfd_disks[i].name);
 	}
+
+	if (smfd_config_test)
+		exit(EXIT_SUCCESS);
 }
 
 /* Fatal error if the node is not of the expected type */
