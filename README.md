@@ -4,7 +4,7 @@
 
 A Linux daemon to manage fan speeds on Supermicro X10 (and possibly other) systems.
 
-Copyright 2021 Ian Pilcher <<arequipeno@gmail.com>>
+Copyright 2021, 2026 Ian Pilcher <<arequipeno@gmail.com>>
 
 ## Why?
 
@@ -78,7 +78,7 @@ $ sudo semodule -i smfd.pp
 #### 4. Build the daemon
 
 ```
-$ gcc -O3 -Wall -Wextra -o smfd smfd.c -lfreeipmi -latasmart -lyaml
+$ gcc -O2 -Wall -Wextra -o smfd smfd.c -lfreeipmi -latasmart -lyaml
 ```
 
 #### 5. Install the daemon

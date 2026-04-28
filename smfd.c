@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Ian Pilcher <arequipeno@gmail.com>
+ * Copyright 2021, 2026 Ian Pilcher <arequipeno@gmail.com>
  *
  * The program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -147,9 +147,8 @@ static const char *smfd_config_file = "/etc/smfd/config.yaml";
 /* How often to log temperature & other information (seconds) */
 static unsigned int smfd_log_interval = UINT_MAX;
 
-/* IPMI SDR cache location */
-static char smfd_sdr_cache_default[] = "/var/lib/smfd/sdr-cache";
-static char *smfd_sdr_cache = smfd_sdr_cache_default;
+/* Non-default IPMI SDR cache location */
+static char *smfd_sdr_cache_override = NULL;
 
 /* Fan percent settings when no thresholds are triggered */
 static uint8_t smfd_cpu_fan_base = 255;
@@ -445,6 +444,10 @@ static void smfd_parse_args(const int argc, char **const argv)
 				SMFD_FATAL("-c option requires configuration file\n");
 			continue;
 		}
+
+		SMFD_ERR("Unrecognized argument: %s\n", argv[i]);
+		printf(help_msg, argv[0], argv[0]);
+		exit(EXIT_FAILURE);
 	}
 }
 
@@ -484,7 +487,7 @@ static void smfd_coretemp_init(void)
 			SMFD_ABORT("snprintf: %m\n");
 
 		if (rc >= (int)sizeof buf)
-			SMFD_FATAL("File name truncated: temp%u_label", i + 1);
+			SMFD_FATAL("File name truncated: temp%u_label\n", i + 1);
 
 		if ((fd = openat(dirfd, buf, O_RDONLY)) < 0) {
 			if (errno == ENOENT)
@@ -726,12 +729,12 @@ static void smfd_ipmi_raw_cmd(const uint8_t *const cmd, const unsigned int cmd_l
 
 	if (resp[1] != IPMI_COMP_CODE_COMMAND_SUCCESS) {
 		if (ipmi_completion_code_strerror_r(resp[0], net_fn, resp[1], msg, sizeof msg) < 0)
-			snprintf(msg, sizeof msg, "[completion code %0x" PRIx8 "]", resp[1]);
+			snprintf(msg, sizeof msg, "[completion code 0x%02" PRIx8 "]", resp[1]);
 		SMFD_FATAL("IPMI command failed: %s\n", msg);
 	}
 
 	if (resp[0] != cmd[0]) {
-		SMFD_FATAL("IPMI response (0x%" PRIx8 ") did not match command (0x%" PRIx8 ")\n",
+		SMFD_FATAL("IPMI response (0x%02" PRIx8 ") did not match command (0x%02" PRIx8 ")\n",
 			   resp[0], cmd[0]);
 	}
 
@@ -821,6 +824,15 @@ static void smfd_set_fan_percent(const uint8_t zone, const uint8_t percent)
  ***************************************************************************************************
  **************************************************************************************************/
 
+/* Return the IPMI SDR cache location. */
+static const char *smfd_sdr_cache(void)
+{
+	if (smfd_sdr_cache_override == NULL)
+		return "/var/lib/smfd/sdr-cache";
+	else
+		return smfd_sdr_cache_override;
+}
+
 /* Initialize a smfd_ipmi_fan by reading its record from the IPMI SDR cache */
 static void smfd_ipmi_fan_init(const ipmi_sdr_ctx_t sdr, struct smfd_ipmi_fan *const fan)
 {
@@ -870,7 +882,7 @@ static void smfd_ipmi_init(void)
 	if ((sdr = ipmi_sdr_ctx_create()) == NULL)
 		SMFD_ABORT("ipmi_sdr_ctx_create: %m\n");
 
-	if (ipmi_sdr_cache_open(sdr, smfd_ipmi, smfd_sdr_cache) < 0)
+	if (ipmi_sdr_cache_open(sdr, smfd_ipmi, smfd_sdr_cache()) < 0)
 		SMFD_FATAL("ipmi_sdr_cache_open: %s\n", ipmi_sdr_ctx_errormsg(sdr));
 
 	for (i = 0; i < smfd_ipmi_fan_count; ++i)
@@ -981,7 +993,7 @@ static void smfd_process_temp(const int temp, struct smfd_temp_threshold *const 
 		else {
 			if (temp >= t->threshold) {
 				SMFD_INFO("%s temperature (%d) exceeds %s threshold (%d)\n",
-					  name, temp, t->name, t->hysteresis);
+					  name, temp, t->name, t->threshold);
 				t->active = 1;
 				max = t;
 			}
@@ -1142,7 +1154,7 @@ static void smfd_dump_config(void)
 	if (!smfd_debug)
 		return;
 
-	SMFD_DEBUG("  smfd_sdr_cache: %s\n", smfd_sdr_cache);
+	SMFD_DEBUG("  smfd_sdr_cache: %s\n", smfd_sdr_cache());
 	SMFD_DEBUG("  smfd_log_interval: %u\n", smfd_log_interval);
 	SMFD_DEBUG("  smfd_cpu_fan_base: %" PRIu8 "\n", smfd_cpu_fan_base);
 	SMFD_DEBUG("  smfd_sys_fan_base: %" PRIu8 "\n", smfd_sys_fan_base);
@@ -1240,7 +1252,7 @@ static void smfd_parse_sdr_cache(const yaml_node_t *const node,
 				 const char *const restrict name,
 				 void *const restrict data __attribute__((unused)))
 {
-	smfd_sdr_cache = smfd_parse_string(node, name);
+	smfd_sdr_cache_override = smfd_parse_string(node, name);
 }
 
 /* Parse a fan speed (percentage) from a scalar node */
@@ -1345,7 +1357,8 @@ static void smfd_parse_ipmi_fans(const yaml_node_t *const node, yaml_document_t 
 	smfd_check_sequence(node, name);
 
 	len = node->data.sequence.items.top - node->data.sequence.items.start;
-	assert(len > 0);
+	if (len <= 0)
+		SMFD_CFG_FATAL("empty sequence: %s\n", node, name);
 
 	if ((fans = malloc(len * sizeof *fans)) == NULL)
 		SMFD_ABORT("malloc: %m\n");
@@ -1465,6 +1478,7 @@ static void smfd_parse_triggers(const yaml_node_t *const node, yaml_document_t *
 {
 	struct smfd_temp_threshold **const triggers = data;
 
+	struct smfd_temp_threshold *lo, *hi;
 	const yaml_node_item_t *item;
 	ptrdiff_t len;
 	int i;
@@ -1472,7 +1486,8 @@ static void smfd_parse_triggers(const yaml_node_t *const node, yaml_document_t *
 	smfd_check_sequence(node, name);
 
 	len = node->data.sequence.items.top - node->data.sequence.items.start;
-	assert(len > 0);
+	if (len <= 0)
+		SMFD_CFG_FATAL("empty sequence: %s\n", node, name);
 
 	if ((*triggers = malloc((len + 1) * sizeof **triggers)) == NULL)
 		SMFD_ABORT("malloc: %m\n");
@@ -1481,6 +1496,30 @@ static void smfd_parse_triggers(const yaml_node_t *const node, yaml_document_t *
 
 	for (i = 0, item = node->data.sequence.items.start ; i < len; ++i, ++item)
 		smfd_parse_trigger(yaml_document_get_node(doc, *item), doc, name, &(*triggers)[i]);
+
+	for (lo = *triggers, hi = lo + 1; hi->name != NULL ; ++lo, ++hi) {
+
+		if (lo->threshold >= hi->threshold) {
+			SMFD_FATAL("%s: %s threshold (%d°C) not less than %s (%d°C)\n", name,
+				   lo->name, lo->threshold, hi->name, hi->threshold);
+		}
+
+		if (lo->cpu_fan_percent > hi->cpu_fan_percent) {
+			SMFD_FATAL("%s: %s CPU fan speed (%" PRIu8 "%%) greater than %s (%" PRIu8 "%%)\n",
+				   name, lo->name, lo->cpu_fan_percent, hi->name, hi->cpu_fan_percent);
+		}
+
+		if (lo->sys_fan_percent > hi->sys_fan_percent) {
+			SMFD_FATAL("%s: %s system fan speed (%" PRIu8 "%%) greater than %s (%" PRIu8 "%%)\n",
+				   name, lo->name, lo->sys_fan_percent, hi->name, hi->sys_fan_percent);
+		}
+
+		if (lo->threshold >= hi->hysteresis) {
+			SMFD_WARNING("%s: %s range (%d-%d°C) overlaps with %s (%d-%d°C)\n", name,
+				     lo->name, lo->hysteresis, lo->threshold,
+				     hi->name, hi->hysteresis, hi->threshold);
+		}
+	}
 }
 
 /* Parse smfd_disks and smfd_disk_count from a sequence node */
@@ -1496,7 +1535,8 @@ static void smfd_parse_smart_disks(const yaml_node_t *const node, yaml_document_
 	smfd_check_sequence(node, name);
 
 	len = node->data.sequence.items.top - node->data.sequence.items.start;
-	assert(len > 0);
+	if (len <= 0)
+		SMFD_CFG_FATAL("empty sequence: %s\n", node, name);
 
 	if ((disks = malloc(len * sizeof *disks)) == NULL)
 		SMFD_ABORT("malloc: %m\n");
@@ -1663,6 +1703,7 @@ static void smfd_cleanup(void)
 	free(smfd_cfg_cpu_temp);
 	free(smfd_cfg_pch_temp);
 	free(smfd_cfg_disk_temp);
+	free(smfd_sdr_cache_override);
 }
 
 /* Process smfd_debug_signal and smfd_dump_signal */
@@ -1709,12 +1750,9 @@ static void smfd_log_check(void)
 	}
 }
 
-#include <mcheck.h>
 
 int main(const int argc, char **const argv)
 {
-	mtrace();
-
 	smfd_parse_args(argc, argv);
 	smfd_load_config();
 	smfd_dump_config();

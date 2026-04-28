@@ -27,6 +27,8 @@ smart_disks: [ /dev/sdb, /dev/sdc, /dev/sdd, /dev/sde ]
 #
 # CPU temperature (coretemp) triggers
 #
+# Thresholds and fan speeds MUST be in ascending order
+#
 cpu_temp_triggers:
 
   - name: medium                # name for logging (required)
@@ -50,6 +52,8 @@ cpu_temp_triggers:
 #
 # PCH temperature triggers
 #
+# Thresholds and fan speeds MUST be in ascending order
+#
 pch_temp_triggers:
 
   - name: medium
@@ -72,6 +76,8 @@ pch_temp_triggers:
 
 #
 # Disk temperature triggers
+#
+# Thresholds and fan speeds MUST be in ascending order
 #
 disk_temp_triggers:
 
